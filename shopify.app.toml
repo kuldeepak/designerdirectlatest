@@ -2,7 +2,7 @@
 
 client_id = "5aaded2899d449156c5deb413cb205f3"
 name = "form-app-testttt"
-application_url = "https://managing-cnet-votes-sentence.trycloudflare.com/"
+application_url = "https://fallen-sheffield-item-charm.trycloudflare.com/"
 embedded = true
 
 [build]
@@ -31,5 +31,5 @@ subpath = "configurator"
 
 [auth]
 redirect_urls = [
-    "https://managing-cnet-votes-sentence.trycloudflare.com/api/auth",
+    "https://fallen-sheffield-item-charm.trycloudflare.com/api/auth",
 ]
