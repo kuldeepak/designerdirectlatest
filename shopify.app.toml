@@ -2,7 +2,7 @@
 
 client_id = "5aaded2899d449156c5deb413cb205f3"
 name = "form-app-testttt"
-application_url = "https://relaxation-squad-took-cal.trycloudflare.com/"
+application_url = "https://managing-cnet-votes-sentence.trycloudflare.com/"
 embedded = true
 
 [build]
@@ -30,4 +30,6 @@ subpath = "configurator"
 
 
 [auth]
-redirect_urls = ["https://relaxation-squad-took-cal.trycloudflare.com/api/auth"]
+redirect_urls = [
+    "https://managing-cnet-votes-sentence.trycloudflare.com/api/auth",
+]

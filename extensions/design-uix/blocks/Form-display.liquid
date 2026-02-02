@@ -1,0 +1,309 @@
+{% schema %}
+{
+  "name": "Metaobject Data",
+  "target": "section"
+}
+{% endschema %} 
+
+{% if customer.tags contains 'approved' %}
+  {% assign all_brands = shop.metaobjects.brand_configurator.values %}
+  
+  {% if all_brands.size > 0 %}
+    <!-- Debug Information (Remove in production) -->
+    <div style="background-color: #f0f0f0; padding: 15px; margin-bottom: 20px; border-left: 4px solid #007bff;">
+      <p><strong>Debug Info:</strong></p>
+      <p>Total brands in system: {{ all_brands.size }}</p>
+      <p>Your email: <strong>{{ customer.email }}</strong></p>
+    </div>
+
+    {% assign approved_brands = all_brands | where: "contact_email", customer.email %}
+
+    {% if approved_brands.size > 0 %}
+      <div style="margin-bottom: 20px;">
+        <h2>Your Assigned Brands</h2>
+        <p>Found {{ approved_brands.size }} brand(s) assigned to your account.</p>
+      </div>
+
+      <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        <thead style="background-color: #f5f5f5;">
+          <tr>
+            <th style="text-align: left; padding: 12px; border: 1px solid #ddd;">Brand Name</th>
+            <th style="text-align: left; padding: 12px; border: 1px solid #ddd;">Bio</th>
+            <th style="text-align: left; padding: 12px; border: 1px solid #ddd;">Category</th>
+            <th style="text-align: left; padding: 12px; border: 1px solid #ddd;">Phone</th>
+            <th style="text-align: left; padding: 12px; border: 1px solid #ddd;">Email</th>
+            <th style="text-align: left; padding: 12px; border: 1px solid #ddd;">Lookbook File</th>
+            <th style="text-align: left; padding: 12px; border: 1px solid #ddd;">Linesheet PDF</th>
+            <th style="text-align: left; padding: 12px; border: 1px solid #ddd;">Edit </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for brand in approved_brands %}
+            <tr style="border-bottom: 1px solid #ddd;">
+              <td style="padding: 12px; border: 1px solid #ddd;">
+                {% if brand.brand_name %}
+                  {{ brand.brand_name }}
+                {% else %}
+                  <em>N/A</em>
+                {% endif %}
+              </td>
+              <td style="padding: 12px; border: 1px solid #ddd;">
+                {% if brand.bio %}
+                  {{ brand.bio }}
+                {% else %}
+                  <em>N/A</em>
+                {% endif %}
+              </td>
+              <td style="padding: 12px; border: 1px solid #ddd;">
+                {% if brand.category %}
+                  {{ brand.category }}
+                {% else %}
+                  <em>N/A</em>
+                {% endif %}
+              </td>
+              <td style="padding: 12px; border: 1px solid #ddd;">
+                {% if brand.phone %}
+                  <a href="tel:{{ brand.phone }}">{{ brand.phone }}</a>
+                {% else %}
+                  <em>N/A</em>
+                {% endif %}
+              </td>
+
+
+              <td style="padding: 12px; border: 1px solid #ddd;">
+                  <button onclick="editBrand('{{ brand.system.id }}')">Edit</button>
+              </td>
+              
+              <td style="padding: 12px; border: 1px solid #ddd;">
+                {% if brand.email %}
+                  <a href="mailto:{{ brand.email }}">{{ brand.email }}</a>
+                {% else %}
+                  <em>N/A</em>
+                {% endif %}
+              </td>
+              <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
+                {% if brand.lookbook_file %}
+                  <a href="{{ brand.lookbook_file.url }}" target="_blank" style="background-color: #007bff; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px; display: inline-block;">
+                    📄 Open Lookbook
+                  </a>
+                {% else %}
+                  <em>Not available</em>
+                {% endif %}
+              </td>
+              <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
+                {% if brand.linesheet_pdf %}
+                  <a href="{{ brand.linesheet_pdf.url }}" target="_blank" style="background-color: #28a745; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px; display: inline-block;">
+                    📋 Open Linesheet
+                  </a>
+                {% else %}
+                  <em>Not available</em>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    {% else %}
+      <!-- No brands matched -->
+      <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin-top: 20px;">
+        <h3>No Brands Assigned</h3>
+        <p>We couldn't find any brands assigned to your email address (<strong>{{ customer.email }}</strong>).</p>
+        <p>If you believe this is an error, please contact our support team.</p>
+      </div>
+
+      <!-- Debug: Show all brands for troubleshooting -->
+      <details style="margin-top: 20px; padding: 10px; background-color: #f9f9f9; border: 1px solid #ddd;">
+        <summary style="cursor: pointer; font-weight: bold;">Debug: All Available Brands</summary>
+        <div style="margin-top: 15px;">
+          {% if all_brands.size > 0 %}
+            <ul>
+              {% for brand in all_brands %}
+                <li>
+                  <strong>{{ brand.brand_name }}</strong> - Email: {{ brand.email }}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p>No brands found in metaobject.</p>
+          {% endif %}
+        </div>
+      </details>
+    {% endif %}
+
+  {% else %}
+    <!-- No brands exist in system -->
+    <div style="background-color: #f8d7da; padding: 15px; border-left: 4px solid #dc3545;">
+      <h3>No Brands Configured</h3>
+      <p>There are currently no brands configured in the system. Please contact an administrator.</p>
+    </div>
+  {% endif %}
+
+{% else %}
+  <!-- Customer not approved -->
+  <div style="background-color: #d1ecf1; padding: 15px; border-left: 4px solid #17a2b8;">
+    <h3>Access Restricted</h3>
+    <p>You need to be approved to access brand information. Please contact our sales team for approval.</p>
+  </div>
+{% endif %}
+
+
+
+<div id="editModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999;">
+  <div style="background:#fff; max-width:500px; margin:5% auto; padding:20px; position:relative;">
+    
+    <h3>Edit Brand</h3>
+
+    <form id="editBrandForm">
+      <input type="hidden" name="id" id="edit_id">
+   <div class="fieldset_et ">
+  <div class="form-control_et">
+      <input type="text" name="brand_name" id="edit_brand_name" placeholder="Brand Name" required>
+      </div>
+      <div class="form-control_et grid_frome">
+      <input type="text" name="bio" id="edit_bio" placeholder="Bio">
+      <input type="text" name="category" id="edit_category" placeholder="Category">
+      </div>
+       <div class="form-control_et grid_frome">
+      <input type="text" name="phone" id="edit_phone" placeholder="Phone">
+      <input type="email" name="contact_email" id="edit_email" placeholder="Email" readonly>
+       </div>
+        <div class="form-control_et">
+      <input type="file" name="lookbook_file" accept=".pdf,.jpg,.png" >
+        </div>
+         <div class="form-control_et">
+      <input type="file" name="linesheet_pdf" accept=".pdf" >
+         </div></div>
+
+<button type="submit" id="updateBtn">
+  <span id="btnText">Update</span>
+  <span id="btnSpinner" style="display:none; margin-left:8px;">⏳</span>
+</button>
+
+     <button type="button" onclick="closeEdit()">Cancel</button>
+    </form>
+
+    <p id="edit_error" style="color:red; display:none;"></p>
+    <p id="edit_success" style="color:green; display:none;">Updated successfully</p>
+  </div>
+</div>
+{% comment %}end edit metaobject form     {% endcomment %}
+
+{% comment %} start Spinner code  {% endcomment %}
+<style>
+#btnSpinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+<script>
+document.getElementById("editBrandForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+
+  const btn = document.getElementById("updateBtn");
+  const btnText = document.getElementById("btnText");
+  const spinner = document.getElementById("btnSpinner");
+
+  // 🔄 spinner ON
+  btn.disabled = true;
+  btnText.style.display = "none";
+  spinner.style.display = "inline-block";
+
+  const formData = new FormData(this);
+
+  try {
+    const res = await fetch("/apps/configurator", {
+      method: "PUT",
+      body: formData
+    });
+
+    const result = await res.json();
+
+    if(result.success){
+      document.getElementById("edit_success").style.display = "block";
+
+      // ✅ hard refresh
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 500);
+
+    } else {
+      throw new Error(result.error || "Update failed");
+    }
+
+  } catch (err) {
+    document.getElementById("edit_error").innerText = err.message;
+    document.getElementById("edit_error").style.display = "block";
+
+    // ❌ spinner OFF (agar error aaye)
+    btn.disabled = false;
+    btnText.style.display = "inline";
+    spinner.style.display = "none";
+  }
+});
+</script>
+
+
+{% comment %} end Spinner code  {% endcomment %}
+
+<script>
+  const brandsData = {
+    {% for brand in brands %}
+      "{{ brand.system.id }}": {
+        brand_name: "{{ brand.brand_name | escape }}",
+        bio: "{{ brand.bio | escape }}",
+        category: "{{ brand.category | escape }}",
+        phone: "{{ brand.phone | escape }}",
+        contact_email: "{{ brand.contact_email | escape }}"
+      },
+    {% endfor %}
+  };
+
+  function editBrand(id) {
+    const brand = brandsData[id];
+    if (!brand) return;
+
+    document.getElementById("edit_id").value = id;
+    document.getElementById("edit_brand_name").value = brand.brand_name;
+    document.getElementById("edit_bio").value = brand.bio;
+    document.getElementById("edit_category").value = brand.category;
+    document.getElementById("edit_phone").value = brand.phone;
+    document.getElementById("edit_email").value = brand.contact_email;
+    
+
+    document.getElementById("editModal").style.display = "block";
+  }
+
+  function closeEdit() {
+    document.getElementById("editModal").style.display = "none";
+  }
+</script>
+
+<script>
+  document.getElementById("editBrandForm").addEventListener("submit", async function(e){
+    e.preventDefault();
+
+    const formData = new FormData(this);
+
+    const res = await fetch("/apps/configurator", {
+      method: "PUT",
+      body: formData
+    });
+
+    const result = await res.json();
+
+    if(result.success){
+      document.getElementById("edit_success").style.display = "block";
+      {% comment %} setTimeout(() => location.reload(), 1000); {% endcomment %}
+    } else {
+      document.getElementById("edit_error").innerText = result.error;
+      document.getElementById("edit_error").style.display = "block";
+    }
+  });
+</script>

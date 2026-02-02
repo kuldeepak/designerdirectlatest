@@ -7,23 +7,27 @@ export async function action({ request }) {
     // =======================
     const formData = await request.formData();
 
+    const metaobjectId = formData.get("id"); // ID for update
     const brandName = formData.get("brand_name");
     const bio = formData.get("bio");
     const category = formData.get("category");
     const phone = formData.get("phone");
     const email = formData.get("contact_email");
 
-
     const lookbookFile = formData.get("lookbook_file");
     const linesheetPdf = formData.get("linesheet_pdf");
+
     console.log('*****************STEP1*******************');
-    console.log(phone);
+    console.log('Metaobject ID received:', metaobjectId);
+    console.log('Phone:', phone);
+
     if (!brandName) {
       return { success: false, error: "Brand name is required" };
     }
 
-    // This route is called from the THEME via an App Proxy (/apps/configurator),
-    // so embedded-admin auth will redirect to /auth/login. Use app-proxy auth instead.
+    // =======================
+    // 2. Authenticate via App Proxy
+    // =======================
     const { admin, session } = await authenticate.public.appProxy(request);
     if (!admin || !session) {
       return {
@@ -34,14 +38,12 @@ export async function action({ request }) {
     }
 
     // =======================
-    // 2. Shopify GraphQL helper (same pattern as app._index.jsx)
+    // 3. Shopify GraphQL helper
     // =======================
     const shopifyGraphQL = async (query, variables) => {
-
       const res = await admin.graphql(query, { variables });
-
       const json = await res.json();
-      console.log('******************Res*******************');
+      console.log('******************GraphQL Response*******************');
       console.log(json);
 
       if (json.errors?.length) {
@@ -52,7 +54,7 @@ export async function action({ request }) {
     };
 
     // =======================
-    // 3. Ensure metaobject definition
+    // 4. Ensure metaobject definition exists
     // =======================
     const ensureMetaobjectDefinition = async () => {
       const checkQuery = `
@@ -101,7 +103,7 @@ export async function action({ request }) {
     await ensureMetaobjectDefinition();
 
     // =======================
-    // 4. File upload helpers
+    // 5. File upload helpers
     // =======================
     const stagedUpload = async (file) => {
       const query = `
@@ -121,7 +123,7 @@ export async function action({ request }) {
         input: [{
           filename: file.name,
           mimeType: file.type || "application/octet-stream",
-          fileSize: file.size.toString(),  // ✅ must be string
+          fileSize: file.size.toString(),
           resource: "FILE",
           httpMethod: "POST"
         }]
@@ -177,7 +179,7 @@ export async function action({ request }) {
     };
 
     // =======================
-    // 5. Upload files
+    // 6. Upload files if provided
     // =======================
     let lookbookFileId = null;
     if (lookbookFile && lookbookFile.size > 0) {
@@ -194,53 +196,107 @@ export async function action({ request }) {
     }
 
     // =======================
-    // 6. Create metaobject
+    // 7. UPDATE or CREATE metaobject
     // =======================
-    const handle = `${brandName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
+    if (metaobjectId && metaobjectId.trim() !== "") {
+      // UPDATE EXISTING METAOBJECT
+      console.log('*****************UPDATING METAOBJECT*******************');
+      console.log('ID:', metaobjectId);
 
-    const fields = [
-      { key: "brand_name", value: brandName },
-      { key: "bio", value: bio || "" },
-      { key: "category", value: category || "" },
-      { key: "phone", value: phone || "" },
-      { key: "contact_email", value: email }
-    ];
+      const fields = [
+        { key: "brand_name", value: brandName },
+        { key: "bio", value: bio || "" },
+        { key: "category", value: category || "" },
+        { key: "phone", value: phone || "" },
+        { key: "contact_email", value: email || "" }
+      ];
 
-    if (lookbookFileId) {
-      fields.push({ key: "lookbook_file", value: lookbookFileId });
-    }
+      if (lookbookFileId) fields.push({ key: "lookbook_file", value: lookbookFileId });
+      if (linesheetFileId) fields.push({ key: "linesheet_pdf", value: linesheetFileId });
 
-    if (linesheetFileId) {
-      fields.push({ key: "linesheet_pdf", value: linesheetFileId });
-    }
-
-    const metaobjectMutation = `
-      mutation CreateMetaobject($handle: String!, $type: String!, $fields: [MetaobjectFieldInput!]!) {
-        metaobjectCreate(
-          metaobject: { handle: $handle, type: $type, fields: $fields }
-        ) {
-          metaobject { id }
-          userErrors { message }
+      const updateMutation = `
+        mutation UpdateMetaobject($id: ID!, $fields: [MetaobjectFieldInput!]!) {
+          metaobjectUpdate(
+            id: $id
+            metaobject: { fields: $fields }
+          ) {
+            metaobject { id handle fields { key value } }
+            userErrors { field message }
+          }
         }
+      `;
+
+      const fullId = metaobjectId.startsWith('gid://')
+        ? metaobjectId
+        : `gid://shopify/Metaobject/${metaobjectId}`;
+
+      console.log('Full GID:', fullId);
+
+      const updateData = await shopifyGraphQL(updateMutation, {
+        id: fullId,
+        fields
+      });
+
+      if (updateData.metaobjectUpdate.userErrors.length) {
+        console.error('Update errors:', updateData.metaobjectUpdate.userErrors);
+        throw new Error(updateData.metaobjectUpdate.userErrors[0].message);
       }
-    `;
 
-    const metaobjectData = await shopifyGraphQL(metaobjectMutation, {
-      handle,
-      type: "brand_configurator",
-      fields
-    });
+      console.log('*****************UPDATE SUCCESSFUL*******************');
+      return {
+        success: true,
+        action: "update",
+        metaobject: updateData.metaobjectUpdate.metaobject
+      };
 
-    if (metaobjectData.metaobjectCreate.userErrors.length) {
-      throw new Error(metaobjectData.metaobjectCreate.userErrors[0].message);
+    } else {
+      // CREATE NEW METAOBJECT
+      console.log('*****************CREATING NEW METAOBJECT*******************');
+
+      const handle = `${brandName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
+
+      const fields = [
+        { key: "brand_name", value: brandName },
+        { key: "bio", value: bio || "" },
+        { key: "category", value: category || "" },
+        { key: "phone", value: phone || "" },
+        { key: "contact_email", value: email || "" }
+      ];
+
+      if (lookbookFileId) fields.push({ key: "lookbook_file", value: lookbookFileId });
+      if (linesheetFileId) fields.push({ key: "linesheet_pdf", value: linesheetFileId });
+
+      const createMutation = `
+        mutation CreateMetaobject($handle: String!, $type: String!, $fields: [MetaobjectFieldInput!]!) {
+          metaobjectCreate(
+            metaobject: { handle: $handle, type: $type, fields: $fields }
+          ) {
+            metaobject { id }
+            userErrors { message }
+          }
+        }
+      `;
+
+      const createData = await shopifyGraphQL(createMutation, {
+        handle,
+        type: "brand_configurator",
+        fields
+      });
+
+      if (createData.metaobjectCreate.userErrors.length) {
+        throw new Error(createData.metaobjectCreate.userErrors[0].message);
+      }
+
+      console.log('*****************CREATE SUCCESSFUL*******************');
+      return {
+        success: true,
+        action: "create",
+        metaobjectId: createData.metaobjectCreate.metaobject.id
+      };
     }
-
-    return {
-      success: true,
-      metaobjectId: metaobjectData.metaobjectCreate.metaobject.id
-    };
 
   } catch (error) {
+    console.error('*****************ERROR*******************');
     console.error(error);
     return { success: false, error: error.message };
   }
