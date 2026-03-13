@@ -649,6 +649,7 @@ export async function action({ request }) {
         name: "Brand Configurator",
         type: "brand_configurator",
         fieldDefinitions: [
+          
           { name: "Brand Name", key: "brand_name", type: "single_line_text_field", required: true },
           { name: "Bio", key: "bio", type: "single_line_text_field" },
           { name: "Category", key: "category", type: "single_line_text_field" },
