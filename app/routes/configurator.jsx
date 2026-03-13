@@ -569,16 +569,25 @@
 
 import { authenticate } from "../shopify.server";
 
-
 export async function action({ request }) {
   try {
-    const formData = await request.formData();
+    // =======================
+    // AUTHENTICATE FIRST (before reading body)
+    // =======================
+    const { admin, session } = await authenticate.public.appProxy(request);
+
+    if (!admin) {
+      return { success: false, error: "App not installed for this shop" };
+    }
 
     // =======================
-    // BRAND METAOBJECT DATA
+    // NOW READ FORM DATA
     // =======================
-    const metaobjectId = formData.get("id"); // ID for update
-    const brandId = formData.get("brand_id"); // for product reference
+    const formData = await request.formData();
+
+    // BRAND METAOBJECT DATA
+    const metaobjectId = formData.get("id");
+    const brandId = formData.get("brand_id");
     const brandName = formData.get("brand_name");
     const bio = formData.get("bio");
     const category = formData.get("category");
@@ -588,9 +597,7 @@ export async function action({ request }) {
     const lookbookFile = formData.get("lookbook_file");
     const linesheetPdf = formData.get("linesheet_pdf");
 
-    // =======================
     // PRODUCT DATA
-    // =======================
     const title = formData.get("title");
     const price = formData.get("price");
     const imageFile = formData.get("image");
@@ -605,13 +612,8 @@ export async function action({ request }) {
     }
 
     // =======================
-    // AUTHENTICATE
+    // GRAPHQL HELPER
     // =======================
-    const { admin, session } = await authenticate.public.appProxy(request);
-    if (!admin || !session) {
-      return { success: false, error: "Authentication failed" };
-    }
-
     const shopifyGraphQL = async (query, variables) => {
       const res = await admin.graphql(query, { variables });
       const json = await res.json();
@@ -649,7 +651,6 @@ export async function action({ request }) {
         name: "Brand Configurator",
         type: "brand_configurator",
         fieldDefinitions: [
-          
           { name: "Brand Name", key: "brand_name", type: "single_line_text_field", required: true },
           { name: "Bio", key: "bio", type: "single_line_text_field" },
           { name: "Category", key: "category", type: "single_line_text_field" },
@@ -681,9 +682,17 @@ export async function action({ request }) {
         }
       `;
       const data = await shopifyGraphQL(query, {
-        input: [{ filename: file.name, mimeType: file.type || "application/octet-stream", fileSize: file.size.toString(), resource, httpMethod: "POST" }]
+        input: [{
+          filename: file.name,
+          mimeType: file.type || "application/octet-stream",
+          fileSize: file.size.toString(),
+          resource,
+          httpMethod: "POST"
+        }]
       });
-      if (data.stagedUploadsCreate.userErrors.length) throw new Error(data.stagedUploadsCreate.userErrors[0].message);
+      if (data.stagedUploadsCreate.userErrors.length) {
+        throw new Error(data.stagedUploadsCreate.userErrors[0].message);
+      }
       return data.stagedUploadsCreate.stagedTargets[0];
     };
 
@@ -698,7 +707,10 @@ export async function action({ request }) {
     const createShopifyFile = async (resourceUrl) => {
       const query = `
         mutation fileCreate($files: [FileCreateInput!]!) {
-          fileCreate(files: $files) { files { id } userErrors { message } }
+          fileCreate(files: $files) {
+            files { id }
+            userErrors { message }
+          }
         }
       `;
       const data = await shopifyGraphQL(query, { files: [{ originalSource: resourceUrl }] });
@@ -727,6 +739,7 @@ export async function action({ request }) {
     // 4. CREATE/UPDATE BRAND METAOBJECT
     // =======================
     let metaobjectResult = null;
+
     if (metaobjectId && metaobjectId.trim() !== "") {
       // UPDATE
       const fields = [
@@ -747,10 +760,16 @@ export async function action({ request }) {
           }
         }
       `;
-      const fullId = metaobjectId.startsWith("gid://") ? metaobjectId : `gid://shopify/Metaobject/${metaobjectId}`;
+      const fullId = metaobjectId.startsWith("gid://")
+        ? metaobjectId
+        : `gid://shopify/Metaobject/${metaobjectId}`;
+
       const updateData = await shopifyGraphQL(updateMutation, { id: fullId, fields });
-      if (updateData.metaobjectUpdate.userErrors.length) throw new Error(updateData.metaobjectUpdate.userErrors[0].message);
+      if (updateData.metaobjectUpdate.userErrors.length) {
+        throw new Error(updateData.metaobjectUpdate.userErrors[0].message);
+      }
       metaobjectResult = { action: "update", metaobject: updateData.metaobjectUpdate.metaobject };
+
     } else {
       // CREATE
       const handle = `${brandName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
@@ -772,15 +791,25 @@ export async function action({ request }) {
           }
         }
       `;
-      const createData = await shopifyGraphQL(createMutation, { handle, type: "brand_configurator", fields });
-      if (createData.metaobjectCreate.userErrors.length) throw new Error(createData.metaobjectCreate.userErrors[0].message);
-      metaobjectResult = { action: "create", metaobjectId: createData.metaobjectCreate.metaobject.id };
+      const createData = await shopifyGraphQL(createMutation, {
+        handle,
+        type: "brand_configurator",
+        fields
+      });
+      if (createData.metaobjectCreate.userErrors.length) {
+        throw new Error(createData.metaobjectCreate.userErrors[0].message);
+      }
+      metaobjectResult = {
+        action: "create",
+        metaobjectId: createData.metaobjectCreate.metaobject.id
+      };
     }
 
     // =======================
-    // 5. CREATE PRODUCT (IF title + price PROVIDED)
+    // 5. CREATE PRODUCT (IF title + price + brandId PROVIDED)
     // =======================
     let productResult = null;
+
     if (title && price && brandId) {
       const createProductMutation = `
         mutation productCreate($input: ProductInput!) {
@@ -791,24 +820,32 @@ export async function action({ request }) {
         }
       `;
       const productData = await shopifyGraphQL(createProductMutation, {
-        input: { title, vendor: brandName || "Unknown", tags: email ? [email] : [], status: "DRAFT" }
+        input: {
+          title,
+          vendor: brandName || "Unknown",
+          tags: email ? [email] : [],
+          status: "DRAFT"
+        }
       });
-      if (productData.productCreate.userErrors.length) throw new Error(productData.productCreate.userErrors[0].message);
+      if (productData.productCreate.userErrors.length) {
+        throw new Error(productData.productCreate.userErrors[0].message);
+      }
 
       const productId = productData.productCreate.product.id;
 
       // CREATE VARIANT
-      if (price) {
-        const createVariantMutation = `
-          mutation productVariantsBulkCreate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-            productVariantsBulkCreate(productId: $productId, variants: $variants) {
-              productVariants { id price }
-              userErrors { field message }
-            }
+      const createVariantMutation = `
+        mutation productVariantsBulkCreate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+          productVariantsBulkCreate(productId: $productId, variants: $variants) {
+            productVariants { id price }
+            userErrors { field message }
           }
-        `;
-        await shopifyGraphQL(createVariantMutation, { productId, variants: [{ price: price.toString() }] });
-      }
+        }
+      `;
+      await shopifyGraphQL(createVariantMutation, {
+        productId,
+        variants: [{ price: price.toString() }]
+      });
 
       // UPLOAD IMAGE
       if (imageFile && imageFile.size > 0) {
@@ -822,7 +859,13 @@ export async function action({ request }) {
             }
           }
         `;
-        await shopifyGraphQL(attachImageMutation, { productId, media: [{ originalSource: target.resourceUrl, mediaContentType: "IMAGE" }] });
+        await shopifyGraphQL(attachImageMutation, {
+          productId,
+          media: [{
+            originalSource: target.resourceUrl,
+            mediaContentType: "IMAGE"
+          }]
+        });
       }
 
       // ADD BRAND METAFIELD
@@ -835,7 +878,13 @@ export async function action({ request }) {
         }
       `;
       await shopifyGraphQL(metafieldMutation, {
-        metafields: [{ ownerId: productId, namespace: "custom", key: "brand_reference", value: brandId, type: "single_line_text_field" }]
+        metafields: [{
+          ownerId: productId,
+          namespace: "custom",
+          key: "brand_reference",
+          value: brandId,
+          type: "single_line_text_field"
+        }]
       });
 
       productResult = { productId };
@@ -845,6 +894,8 @@ export async function action({ request }) {
 
   } catch (error) {
     console.error('*** ACTION ERROR ***', error);
+    console.error('*** ERROR MESSAGE ***', error.message);
+    console.error('*** ERROR STACK ***', error.stack);
     return { success: false, error: error.message || "Action failed" };
   }
 }

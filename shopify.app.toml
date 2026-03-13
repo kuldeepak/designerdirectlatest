@@ -1,7 +1,7 @@
 
 client_id = "5aaded2899d449156c5deb413cb205f3"
 name = "form-app-designdirect"
-application_url = "https://researchers-tracked-supporting-recommendation.trycloudflare.com/"
+application_url = "https://wrist-die-podcast-morning.trycloudflare.com/"
 embedded = true
 
 [build]
@@ -28,6 +28,4 @@ subpath = "configurator"
 
 
 [auth]
-redirect_urls = [
-    "https://researchers-tracked-supporting-recommendation.trycloudflare.com/api/auth",
-]
+redirect_urls = ["https://wrist-die-podcast-morning.trycloudflare.com/api/auth"]
