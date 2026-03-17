@@ -1,15 +1,77 @@
 //This code only draft product display
 
+// export async function loader({ request }) {
+//   const { admin } = await authenticate.public.appProxy(request);
+
+//   if (!admin) return { success: false, error: "Not authenticated" };
+
+//   const url = new URL(request.url);
+//   const userEmail = url.searchParams.get("email");
+//   if (!userEmail) return { success: false, error: "User email not provided" };
+
+//   const searchQuery = `status:DRAFT AND tag:${userEmail}`;
+
+//   const query = `
+//     query getDraftProducts($search: String!) {
+//       products(first: 50, query: $search) {
+//         edges {
+//           node {
+//             id
+//             title
+//             status
+//             vendor
+//             descriptionHtml
+//             featuredImage { url }
+//             metafields(first: 10) {
+//               edges {
+//                 node { namespace key value }
+//               }
+//             }
+//           }
+//         }
+//       }
+//     }
+//   `;
+
+//   const res = await admin.graphql(query, { variables: { search: searchQuery } });
+//   const json = await res.json();
+
+//   const products = json.data.products.edges.map(edge => {
+//     const node = edge.node;
+//     const metafields = {};
+//     node.metafields.edges.forEach(({ node: mf }) => {
+//       if (mf.namespace === "custom") metafields[mf.key] = mf.value;
+//     });
+
+//     return {
+//       id: node.id,
+//       title: node.title,
+//       description: node.descriptionHtml,
+//       image: node.featuredImage?.url,
+//       brand_name: metafields.brand_name || "",
+//       category: metafields.category || "",
+//       notes: metafields.notes || "",
+//       price: metafields.price || "",
+//     };
+//   });
+
+//   return { success: true, products };
+// }
+
 export async function loader({ request }) {
   const { admin } = await authenticate.public.appProxy(request);
 
   if (!admin) return { success: false, error: "Not authenticated" };
 
-  const searchQuery = "status:DRAFT";
+  const url = new URL(request.url);
+  const userEmail = url.searchParams.get("email");
+  if (!userEmail) return { success: false, error: "User email not provided" };
+
+  const searchQuery = `status:DRAFT AND tag:${userEmail}`;
 
   const query = `
     query getDraftProducts($search: String!) {
-      products(first: 20, query: $search) {
+      products(first: 50, query: $search) {
         edges {
           node {
             id
@@ -47,14 +109,14 @@ export async function loader({ request }) {
       brand_name: metafields.brand_name || "",
       category: metafields.category || "",
       notes: metafields.notes || "",
+      price: metafields.price || "",
     };
   });
 
   return { success: true, products };
 }
 
-
-
+// draft product edit and deleting functionality
 
 
 
