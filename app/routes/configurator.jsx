@@ -1,63 +1,4 @@
 //This code only draft product display
-
-// export async function loader({ request }) {
-//   const { admin } = await authenticate.public.appProxy(request);
-
-//   if (!admin) return { success: false, error: "Not authenticated" };
-
-//   const url = new URL(request.url);
-//   const userEmail = url.searchParams.get("email");
-//   if (!userEmail) return { success: false, error: "User email not provided" };
-
-//   const searchQuery = `status:DRAFT AND tag:${userEmail}`;
-
-//   const query = `
-//     query getDraftProducts($search: String!) {
-//       products(first: 50, query: $search) {
-//         edges {
-//           node {
-//             id
-//             title
-//             status
-//             vendor
-//             descriptionHtml
-//             featuredImage { url }
-//             metafields(first: 10) {
-//               edges {
-//                 node { namespace key value }
-//               }
-//             }
-//           }
-//         }
-//       }
-//     }
-//   `;
-
-//   const res = await admin.graphql(query, { variables: { search: searchQuery } });
-//   const json = await res.json();
-
-//   const products = json.data.products.edges.map(edge => {
-//     const node = edge.node;
-//     const metafields = {};
-//     node.metafields.edges.forEach(({ node: mf }) => {
-//       if (mf.namespace === "custom") metafields[mf.key] = mf.value;
-//     });
-
-//     return {
-//       id: node.id,
-//       title: node.title,
-//       description: node.descriptionHtml,
-//       image: node.featuredImage?.url,
-//       brand_name: metafields.brand_name || "",
-//       category: metafields.category || "",
-//       notes: metafields.notes || "",
-//       price: metafields.price || "",
-//     };
-//   });
-
-//   return { success: true, products };
-// }
-
 export async function loader({ request }) {
   const { admin } = await authenticate.public.appProxy(request);
 
@@ -70,26 +11,33 @@ export async function loader({ request }) {
   const searchQuery = `status:DRAFT AND tag:${userEmail}`;
 
   const query = `
-    query getDraftProducts($search: String!) {
-      products(first: 50, query: $search) {
-        edges {
-          node {
-            id
-            title
-            status
-            vendor
-            descriptionHtml
-            featuredImage { url }
-            metafields(first: 10) {
-              edges {
-                node { namespace key value }
-              }
+  query getDraftProducts($search: String!) {
+    products(first: 50, query: $search) {
+      edges {
+        node {
+          id
+          title
+          status
+          vendor
+          descriptionHtml
+          featuredImage { url }
+
+          variants(first: 1) {
+            nodes {
+              price
+            }
+          }
+
+          metafields(first: 10) {
+            edges {
+              node { namespace key value }
             }
           }
         }
       }
     }
-  `;
+  }
+`;
 
   const res = await admin.graphql(query, { variables: { search: searchQuery } });
   const json = await res.json();
@@ -109,12 +57,18 @@ export async function loader({ request }) {
       brand_name: metafields.brand_name || "",
       category: metafields.category || "",
       notes: metafields.notes || "",
-      price: metafields.price || "",
+      price: node.variants.nodes[0]?.price || "",
     };
   });
 
   return { success: true, products };
 }
+
+// UPDATE DRAFT PRODUCTS
+
+
+// DELETE 
+
 
 // draft product edit and deleting functionality
 
@@ -149,10 +103,154 @@ export async function action({ request }) {
       return { success: false, error: "App not installed for this shop" };
     }
 
-    // =======================
-    // NOW READ FORM DATA
-    // =======================
+    // START THIS CODE ONLY DRFT PRODUCTS DELETE FUNCTIONALITY 
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const body = await request.json();
+
+      //  DELETE PRODUCT
+      if (body.id) {
+        const mutation = `
+          mutation ($input: ProductDeleteInput!) {
+            productDelete(input: $input) {
+              deletedProductId
+            }
+          }
+        `;
+
+        await admin.graphql(mutation, {
+          variables: { input: { id: body.id } }
+        });
+
+        return { success: true };
+      }
+    }
+
+    // END  THIS CODE ONLY DRFT PRODUCTS DELETE FUNCTIONALITY
+
+
     const formData = await request.formData();
+
+
+
+
+
+
+    // =============================
+    // THIS CODE ONLT DRAFT PRODUCT EDIT FUNCTIONALITY
+    // =============================
+
+    const productId = formData.get("product_id");
+
+    if (productId) {
+
+      const title = formData.get("title");
+      const description = formData.get("description");
+      const price = formData.get("price");
+      const notes = formData.get("notes");
+      const brandDisplayName = formData.get("brand_display_name");
+      const categoryField = formData.get("category");
+
+      // 🔹 UPDATE PRODUCT INFO
+      const updateProductMutation = `
+    mutation productUpdate($input: ProductInput!) {
+      productUpdate(input: $input) {
+        product { id }
+        userErrors { message }
+      }
+    }
+  `;
+
+      await admin.graphql(updateProductMutation, {
+        variables: {
+          input: {
+            id: productId,
+            title,
+            descriptionHtml: description || ""
+          }
+        }
+      });
+
+      // 🔹 GET VARIANT ID
+      const variantRes = await admin.graphql(`
+    query ($id: ID!) {
+      product(id: $id) {
+        variants(first: 1) { nodes { id } }
+      }
+    }
+  `, { variables: { id: productId } });
+
+      const variantJson = await variantRes.json();
+      const variantId = variantJson.data.product.variants.nodes[0].id;
+
+      // 🔹 UPDATE PRICE
+      await admin.graphql(`
+    mutation productVariantsBulkUpdate(
+      $productId: ID!,
+      $variants: [ProductVariantsBulkInput!]!
+    ) {
+      productVariantsBulkUpdate(
+        productId: $productId,
+        variants: $variants
+      ) {
+        userErrors { message }
+      }
+    }
+  `, {
+        variables: {
+          productId,
+          variants: [{ id: variantId, price }]
+        }
+      });
+
+      // 🔹 UPDATE ALL METAFIELDS
+      await admin.graphql(`
+    mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+      metafieldsSet(metafields: $metafields) {
+        userErrors { message }
+      }
+    }
+  `, {
+        variables: {
+          metafields: [
+            {
+              ownerId: productId,
+              namespace: "custom",
+              key: "brand_name",
+              type: "single_line_text_field",
+              value: brandDisplayName || ""
+            },
+            {
+              ownerId: productId,
+              namespace: "custom",
+              key: "category",
+              type: "single_line_text_field",
+              value: categoryField || ""
+            },
+            {
+              ownerId: productId,
+              namespace: "custom",
+              key: "notes",
+              type: "single_line_text_field",
+              value: notes || ""
+            }
+          ]
+        }
+      });
+
+      return { success: true, updated: true };
+    }
+
+    // END CODE DRAFT PRODUCT EDIT FUNCTIONALITY
+
+
+
+
+
+
+
+
+
 
     // BRAND METAOBJECT DATA
     const metaobjectId = formData.get("id");
@@ -169,7 +267,7 @@ export async function action({ request }) {
     // PRODUCT DATA
     const title = formData.get("title");
     const price = formData.get("price");
-    const imageFile = formData.get("image");
+    const imageFile = formData.getAll("image");
 
     const description = formData.get("description");
     const notes = formData.get("notes");
@@ -277,11 +375,29 @@ export async function action({ request }) {
 
     const uploadToS3 = async (target, file) => {
       const s3Form = new FormData();
-      for (const param of target.parameters) s3Form.append(param.name, param.value);
+
+      for (const param of target.parameters) {
+        s3Form.append(param.name, param.value);
+      }
+
       s3Form.append("file", file);
-      const res = await fetch(target.url, { method: "POST", body: s3Form });
-      if (!res.ok) throw new Error("S3 upload failed");
+
+      const res = await fetch(target.url, {
+        method: "POST",
+        body: s3Form
+      });
+
+      const text = await res.text();
+
+      if (!res.ok || text.includes("<html")) {
+        console.error("❌ S3 RESPONSE:", text);
+        throw new Error("S3 upload failed or invalid HTML response");
+      }
+
+      console.log("✅ S3 upload success");
     };
+
+
 
     const createShopifyFile = async (resourceUrl) => {
       const query = `
@@ -393,7 +509,14 @@ export async function action({ request }) {
       const createProductMutation = `
         mutation productCreate($input: ProductInput!) {
           productCreate(input: $input) {
-            product { id title vendor tags status }
+            product {
+  id
+  variants(first: 1) {
+    nodes {
+      id
+    }
+  }
+}
             userErrors { field message }
           }
         }
@@ -411,41 +534,68 @@ export async function action({ request }) {
         throw new Error(productData.productCreate.userErrors[0].message);
       }
 
+      // CREATE VARIANT
       const productId = productData.productCreate.product.id;
 
-      // CREATE VARIANT
-      const createVariantMutation = `
-        mutation productVariantsBulkCreate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-          productVariantsBulkCreate(productId: $productId, variants: $variants) {
-            productVariants { id price }
-            userErrors { field message }
-          }
-        }
-      `;
-      await shopifyGraphQL(createVariantMutation, {
-        productId,
-        variants: [{ price: price.toString() }]
-      });
+      const variantId =
+        productData.productCreate.product.variants.nodes[0].id;
 
-      // UPLOAD IMAGE
-      if (imageFile && imageFile.size > 0) {
-        const target = await stagedUpload(imageFile, "PRODUCT_IMAGE");
-        await uploadToS3(target, imageFile);
-        const attachImageMutation = `
-          mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
-            productCreateMedia(productId: $productId, media: $media) {
-              media { id alt }
-              mediaUserErrors { field message }
-            }
+      const updateVariantMutation = `
+  mutation productVariantsBulkUpdate(
+    $productId: ID!,
+    $variants: [ProductVariantsBulkInput!]!
+  ) {
+    productVariantsBulkUpdate(
+      productId: $productId,
+      variants: $variants
+    ) {
+      productVariants { id price }
+      userErrors { field message }
+    }
+  }
+`;
+
+      await shopifyGraphQL(updateVariantMutation, {
+        productId,
+        variants: [
+          {
+            id: variantId,
+            price: price.toString()
           }
-        `;
-        await shopifyGraphQL(attachImageMutation, {
-          productId,
-          media: [{
+        ]
+      });
+      // MULTIPLE IMAGE UPLOAD 
+      if (imageFile && imageFile.length > 0) {
+
+        const mediaArray = [];
+
+        for (const file of imageFile) {
+          if (file.size === 0) continue;
+
+          const target = await stagedUpload(file, "PRODUCT_IMAGE");
+          await uploadToS3(target, file);
+
+          mediaArray.push({
             originalSource: target.resourceUrl,
             mediaContentType: "IMAGE"
-          }]
-        });
+          });
+        }
+
+        if (mediaArray.length > 0) {
+          const attachImageMutation = `
+      mutation productCreateMedia($productId: ID!, $media: [CreateMediaInput!]!) {
+        productCreateMedia(productId: $productId, media: $media) {
+          media { id alt }
+          mediaUserErrors { field message }
+        }
+      }
+    `;
+
+          await shopifyGraphQL(attachImageMutation, {
+            productId,
+            media: mediaArray
+          });
+        }
       }
 
       // ADD BRAND METAFIELD
