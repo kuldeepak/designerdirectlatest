@@ -64,44 +64,85 @@ export async function loader({ request }) {
   return { success: true, products };
 }
 
-// UPDATE DRAFT PRODUCTS
-
-
-// DELETE 
-
-
-// draft product edit and deleting functionality
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // All code one script working like craete edit and prduct create
 
 import { authenticate } from "../shopify.server";
-
+import nodemailer from "nodemailer";
 export async function action({ request }) {
   try {
+
     // =======================
     // AUTHENTICATE FIRST (before reading body)
     // =======================
     const { admin, session } = await authenticate.public.appProxy(request);
 
+
+
     if (!admin) {
       return { success: false, error: "App not installed for this shop" };
     }
+    // SENDER MAILER CODE
+
+    // =========================
+    // 🔥 INQUIRY FORM HANDLER (SAFE VARIABLE)
+    // =========================
+    const inquiryData = await request.formData();
+
+    const buyerName = inquiryData.get("buyer_name");
+    const buyerEmail = inquiryData.get("buyer_email"); // ✅ ADD
+    const productRef = inquiryData.get("product_reference");
+    const message = inquiryData.get("message");
+    const designerEmail = inquiryData.get("designer_email");
+
+    if (buyerName && productRef && designerEmail) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: "smtp.gmail.com",
+          port: 587,
+          secure: false,
+          auth: {
+            user: "kas.kuldeepakthakur@gmail.com",
+            pass: "ftkg shcr hbrl knpz"
+          }
+        });
+
+        await transporter.sendMail({
+          // ❗ IMPORTANT FIX
+          from: "kas.kuldeepakthakur@gmail.com",
+
+          to: designerEmail,
+
+          // ✅ CC USER EMAIL
+          cc: buyerEmail || undefined,
+
+          subject: `Inquiry for ${productRef}`,
+
+          text: `
+Name: ${buyerName}
+User Email: ${buyerEmail || "Not provided"}
+Product: ${productRef}
+Message: ${message || "No message"}
+      `
+        });
+
+        console.log("✅ Inquiry email sent");
+
+        return { success: true };
+
+      } catch (err) {
+        console.error("❌ Email error:", err);
+        return { success: false };
+      }
+    }
+
+
+
+
+
+
+
 
     // START THIS CODE ONLY DRFT PRODUCTS DELETE FUNCTIONALITY 
     const contentType = request.headers.get("content-type") || "";
@@ -126,15 +167,7 @@ export async function action({ request }) {
       }
     }
 
-    // END  THIS CODE ONLY DRFT PRODUCTS DELETE FUNCTIONALITY
-
-
     const formData = await request.formData();
-
-
-
-
-
 
     // =============================
     // THIS CODE ONLT DRAFT PRODUCT EDIT FUNCTIONALITY
@@ -242,15 +275,6 @@ export async function action({ request }) {
     }
 
     // END CODE DRAFT PRODUCT EDIT FUNCTIONALITY
-
-
-
-
-
-
-
-
-
 
     // BRAND METAOBJECT DATA
     const metaobjectId = formData.get("id");
