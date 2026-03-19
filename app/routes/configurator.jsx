@@ -65,7 +65,6 @@ export async function loader({ request }) {
 }
 
 
-
 // All code one script working like craete edit and prduct create
 
 import { authenticate } from "../shopify.server";
@@ -86,13 +85,11 @@ export async function action({ request }) {
     // SENDER MAILER CODE
 
     // =========================
-    // 🔥 INQUIRY FORM HANDLER (SAFE VARIABLE)
+    //  INQUIRY FORM HANDLER (SAFE VARIABLE)
     // =========================
     // const inquiryData = await request.formData();
     const formData = await request.formData();
-    // =========================
-    // 🔥 INQUIRY FORM HANDLER
-    // =========================
+
     const buyerName = formData.get("buyer_name");
     const buyerEmail = formData.get("buyer_email");
     const productRef = formData.get("product_reference");
@@ -111,29 +108,33 @@ export async function action({ request }) {
           }
         });
 
-        await transporter.sendMail({
+        //  REMOVE AWAIT (IMPORTANT)
+        transporter.sendMail({
           from: "kas.kuldeepakthakur@gmail.com",
           to: designerEmail,
           cc: buyerEmail || undefined,
           subject: `Inquiry for ${productRef}`,
           text: `
-Name: ${buyerName}
-User Email: ${buyerEmail || "Not provided"}
-Product: ${productRef}
-Message: ${message || "No message"}
+      Name: ${buyerName}
+      User Email: ${buyerEmail || "Not provided"}
+      Product: ${productRef}
+      Message: ${message || "No message"}
 `
-        });
-
-        console.log("✅ Inquiry email sent");
+        })
+          .then(() => {
+            console.log("Inquiry email sent");
+          })
+          .catch((err) => {
+            console.error("Email error:", err);
+          });
 
         return { success: true, type: "inquiry" };
 
       } catch (err) {
-        console.error("❌ Email error:", err);
+        console.error("Email error:", err);
         return { success: false };
       }
     }
-
 
 
     // START THIS CODE ONLY DRFT PRODUCTS DELETE FUNCTIONALITY 
