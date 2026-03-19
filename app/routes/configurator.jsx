@@ -88,13 +88,16 @@ export async function action({ request }) {
     // =========================
     // 🔥 INQUIRY FORM HANDLER (SAFE VARIABLE)
     // =========================
-    const inquiryData = await request.formData();
-
-    const buyerName = inquiryData.get("buyer_name");
-    const buyerEmail = inquiryData.get("buyer_email"); // ✅ ADD
-    const productRef = inquiryData.get("product_reference");
-    const message = inquiryData.get("message");
-    const designerEmail = inquiryData.get("designer_email");
+    // const inquiryData = await request.formData();
+    const formData = await request.formData();
+    // =========================
+    // 🔥 INQUIRY FORM HANDLER
+    // =========================
+    const buyerName = formData.get("buyer_name");
+    const buyerEmail = formData.get("buyer_email");
+    const productRef = formData.get("product_reference");
+    const message = formData.get("message");
+    const designerEmail = formData.get("designer_email");
 
     if (buyerName && productRef && designerEmail) {
       try {
@@ -109,27 +112,21 @@ export async function action({ request }) {
         });
 
         await transporter.sendMail({
-          // ❗ IMPORTANT FIX
           from: "kas.kuldeepakthakur@gmail.com",
-
           to: designerEmail,
-
-          // ✅ CC USER EMAIL
           cc: buyerEmail || undefined,
-
           subject: `Inquiry for ${productRef}`,
-
           text: `
 Name: ${buyerName}
 User Email: ${buyerEmail || "Not provided"}
 Product: ${productRef}
 Message: ${message || "No message"}
-      `
+`
         });
 
         console.log("✅ Inquiry email sent");
 
-        return { success: true };
+        return { success: true, type: "inquiry" };
 
       } catch (err) {
         console.error("❌ Email error:", err);
@@ -139,35 +136,47 @@ Message: ${message || "No message"}
 
 
 
-
-
-
-
-
     // START THIS CODE ONLY DRFT PRODUCTS DELETE FUNCTIONALITY 
-    const contentType = request.headers.get("content-type") || "";
-    if (contentType.includes("application/json")) {
-      const body = await request.json();
+    const deleteId = formData.get("delete_id");
 
-      //  DELETE PRODUCT
-      if (body.id) {
-        const mutation = `
-          mutation ($input: ProductDeleteInput!) {
-            productDelete(input: $input) {
-              deletedProductId
-            }
-          }
-        `;
+    if (deleteId) {
 
-        await admin.graphql(mutation, {
-          variables: { input: { id: body.id } }
-        });
+      console.log("Incoming ID:", deleteId);
 
-        return { success: true };
+      const productId = deleteId.includes("gid://")
+        ? deleteId
+        : `gid://shopify/Product/${deleteId}`;
+
+      console.log("Final Product ID:", productId);
+
+      const mutation = `
+    mutation ($input: ProductDeleteInput!) {
+      productDelete(input: $input) {
+        deletedProductId
+        userErrors { message }
       }
     }
+  `;
 
-    const formData = await request.formData();
+      const res = await admin.graphql(mutation, {
+        variables: { input: { id: productId } }
+      });
+
+      const json = await res.json();
+
+      console.log("🔥 DELETE RESPONSE:", JSON.stringify(json, null, 2));
+
+      if (json.data.productDelete.userErrors.length > 0) {
+        return {
+          success: false,
+          error: json.data.productDelete.userErrors[0].message
+        };
+      }
+
+      return { success: true };
+    }
+
+    // const formData = await request.formData();
 
     // =============================
     // THIS CODE ONLT DRAFT PRODUCT EDIT FUNCTIONALITY
