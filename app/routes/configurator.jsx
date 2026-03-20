@@ -1,6 +1,4 @@
 //This code only draft product display
-import nodemailer from "nodemailer";
-
 export async function loader({ request }) {
   const { admin } = await authenticate.public.appProxy(request);
 
@@ -70,6 +68,7 @@ export async function loader({ request }) {
 // All code one script working like craete edit and prduct create
 
 import { authenticate } from "../shopify.server";
+import nodemailer from "nodemailer";
 export async function action({ request }) {
   try {
 
@@ -77,8 +76,6 @@ export async function action({ request }) {
     // AUTHENTICATE FIRST (before reading body)
     // =======================
     const { admin, session } = await authenticate.public.appProxy(request);
-
-
 
     if (!admin) {
       return { success: false, error: "App not installed for this shop" };
@@ -132,7 +129,7 @@ export async function action({ request }) {
     // =========================
     //  INQUIRY FORM HANDLER (SAFE VARIABLE)
     // =========================
-
+    // const inquiryData = await request.formData();
     const formData = await request.formData();
 
     const buyerName = formData.get("buyer_name");
@@ -181,6 +178,11 @@ export async function action({ request }) {
         return { success: false };
       }
     }
+
+
+
+
+    // const formData = await request.formData();
 
     // =============================
     // THIS CODE ONLT DRAFT PRODUCT EDIT FUNCTIONALITY
