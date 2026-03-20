@@ -142,28 +142,16 @@ export async function action({ request }) {
 
     if (buyerName && productRef && designerEmail) {
       try {
-        // const transporter = nodemailer.createTransport({
-        //   host: "smtp.gmail.com",
-        //   port: 587,
-        //   secure: false,
-        //   auth: {
-        //     user: "kas.kuldeepakthakur@gmail.com",
-        //     pass: "ftkg shcr hbrl knpz"
-        //   },
-        //   ipVersion: 'ipv4'
-        // });
-
         const transporter = nodemailer.createTransport({
           host: "smtp.gmail.com",
           port: 587,
           secure: false,
-          family: 4,          // ✅ forces IPv4
+          family: 4,
           auth: {
             user: "kas.kuldeepakthakur@gmail.com",
             pass: "ftkg shcr hbrl knpz"
-          }
+          },
         });
-
 
         //  REMOVE AWAIT (IMPORTANT)
         transporter.sendMail({
