@@ -80,9 +80,9 @@ export async function action({ request }) {
 
 
 
-    // if (!admin) {
-    //   return { success: false, error: "App not installed for this shop" };
-    // }
+    if (!admin) {
+      return { success: false, error: "App not installed for this shop" };
+    }
 
     const contentType = request.headers.get("content-type") || "";
 
@@ -181,49 +181,6 @@ export async function action({ request }) {
         return { success: false };
       }
     }
-
-
-
-    // const resend = new Resend("re_GsKhQQPg_XzX22wrAZNZPFHUYzVEtHG3c");
-    // const formData = await request.formData();
-
-    // const buyerName = formData.get("buyer_name");
-    // const buyerEmail = formData.get("buyer_email");
-    // const productRef = formData.get("product_reference");
-    // const message = formData.get("message");
-    // const designerEmail = formData.get("designer_email");
-
-    // if (buyerName && productRef && designerEmail) {
-    //   try {
-
-    //     //  Designer email
-    //     await resend.emails.send({
-    //       from: "onboarding@resend.dev",
-    //       to: designerEmail,
-    //       cc: buyerEmail || undefined,
-    //       subject: `Inquiry for ${productRef}`,
-    //       html: `
-    //       <h3>New Inquiry</h3>
-    //       <p><b>Name:</b> ${buyerName}</p>
-    //       <p><b>Email:</b> ${buyerEmail || "Not provided"}</p>
-    //       <p><b>Product:</b> ${productRef}</p>
-    //       <p><b>Message:</b> ${message || "No message"}</p>
-    //     `
-    //     });
-
-    //     console.log("Inquiry email sent");
-
-    //     return { success: true, type: "inquiry" };
-
-    //   } catch (err) {
-    //     console.error("Email error:", err);
-
-    //     return { success: false, error: err.message };
-    //   }
-    // }
-
-
-    // const formData = await request.formData();
 
     // =============================
     // THIS CODE ONLT DRAFT PRODUCT EDIT FUNCTIONALITY
