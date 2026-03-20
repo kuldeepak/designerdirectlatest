@@ -149,8 +149,10 @@ export async function action({ request }) {
           auth: {
             user: "kas.kuldeepakthakur@gmail.com",
             pass: "ftkg shcr hbrl knpz"
-          }
+          },
+          ipVersion: 'ipv4'
         });
+
 
         //  REMOVE AWAIT (IMPORTANT)
         transporter.sendMail({
