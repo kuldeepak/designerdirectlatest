@@ -75,8 +75,8 @@ export async function action({ request }) {
     // =======================
     // AUTHENTICATE FIRST (before reading body)
     // =======================
-    const { admin, session } = await authenticate.public.appProxy(request);
-
+    // const { admin, session } = await authenticate.public.appProxy(request);
+    const { admin } = await authenticate.admin(request);
     if (!admin) {
       return { success: false, error: "App not installed for this shop" };
     }
