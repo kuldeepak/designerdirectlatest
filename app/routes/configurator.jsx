@@ -1,4 +1,6 @@
 //This code only draft product display
+import { Resend } from "resend";
+
 export async function loader({ request }) {
   const { admin } = await authenticate.public.appProxy(request);
 
@@ -68,7 +70,6 @@ export async function loader({ request }) {
 // All code one script working like craete edit and prduct create
 
 import { authenticate } from "../shopify.server";
-import nodemailer from "nodemailer";
 export async function action({ request }) {
   try {
 
@@ -132,6 +133,58 @@ export async function action({ request }) {
     //  INQUIRY FORM HANDLER (SAFE VARIABLE)
     // =========================
     // const inquiryData = await request.formData();
+    // const formData = await request.formData();
+
+    // const buyerName = formData.get("buyer_name");
+    // const buyerEmail = formData.get("buyer_email");
+    // const productRef = formData.get("product_reference");
+    // const message = formData.get("message");
+    // const designerEmail = formData.get("designer_email");
+
+    // if (buyerName && productRef && designerEmail) {
+    //   try {
+    //     const transporter = nodemailer.createTransport({
+    //       host: "smtp.gmail.com",
+    //       port: 587,
+    //       secure: false,
+    //       auth: {
+    //         user: "kas.kuldeepakthakur@gmail.com",
+    //         pass: "ftkg shcr hbrl knpz"
+    //       },
+    //       ipVersion: 'ipv4'
+    //     });
+
+    //     //  REMOVE AWAIT (IMPORTANT)
+    //     transporter.sendMail({
+    //       from: "kas.kuldeepakthakur@gmail.com",
+    //       to: designerEmail,
+    //       cc: buyerEmail || undefined,
+    //       subject: `Inquiry for ${productRef}`,
+    //       text: `
+    //               Name: ${buyerName}
+    //               User Email: ${buyerEmail || "Not provided"}
+    //               Product: ${productRef}
+    //               Message: ${message || "No message"}
+    //         `
+    //     })
+    //       .then(() => {
+    //         console.log("Inquiry email sent");
+    //       })
+    //       .catch((err) => {
+    //         console.error("Email error:", err);
+    //       });
+
+    //     return { success: true, type: "inquiry" };
+
+    //   } catch (err) {
+    //     console.error("Email error:", err);
+    //     return { success: false };
+    //   }
+    // }
+
+
+
+    const resend = new Resend("re_GsKhQQPg_XzX22wrAZNZPFHUYzVEtHG3c");
     const formData = await request.formData();
 
     const buyerName = formData.get("buyer_name");
@@ -142,45 +195,32 @@ export async function action({ request }) {
 
     if (buyerName && productRef && designerEmail) {
       try {
-        const transporter = nodemailer.createTransport({
-          host: "smtp.gmail.com",
-          port: 587,
-          secure: false,
-          family: 4,
-          auth: {
-            user: "kas.kuldeepakthakur@gmail.com",
-            pass: "ftkg shcr hbrl knpz"
-          },
-        });
 
-        //  REMOVE AWAIT (IMPORTANT)
-        transporter.sendMail({
-          from: "kas.kuldeepakthakur@gmail.com",
+        //  Designer email
+        await resend.emails.send({
+          from: "onboarding@resend.dev",
           to: designerEmail,
           cc: buyerEmail || undefined,
           subject: `Inquiry for ${productRef}`,
-          text: `
-                  Name: ${buyerName}
-                  User Email: ${buyerEmail || "Not provided"}
-                  Product: ${productRef}
-                  Message: ${message || "No message"}
-            `
-        })
-          .then(() => {
-            console.log("Inquiry email sent");
-          })
-          .catch((err) => {
-            console.error("Email error:", err);
-          });
+          html: `
+          <h3>New Inquiry</h3>
+          <p><b>Name:</b> ${buyerName}</p>
+          <p><b>Email:</b> ${buyerEmail || "Not provided"}</p>
+          <p><b>Product:</b> ${productRef}</p>
+          <p><b>Message:</b> ${message || "No message"}</p>
+        `
+        });
+
+        console.log("Inquiry email sent");
 
         return { success: true, type: "inquiry" };
 
       } catch (err) {
         console.error("Email error:", err);
-        return { success: false };
+
+        return { success: false, error: err.message };
       }
     }
-
 
 
 
