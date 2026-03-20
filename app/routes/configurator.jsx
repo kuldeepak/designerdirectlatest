@@ -65,6 +65,7 @@ export async function loader({ request }) {
 }
 
 
+
 // All code one script working like craete edit and prduct create
 
 import { authenticate } from "../shopify.server";
@@ -75,63 +76,23 @@ export async function action({ request }) {
     // =======================
     // AUTHENTICATE FIRST (before reading body)
     // =======================
-    // const { admin, session } = await authenticate.public.appProxy(request);
-    const { admin } = await authenticate.admin(request);
+    const { admin, session } = await authenticate.public.appProxy(request);
+
+
+
     if (!admin) {
       return { success: false, error: "App not installed for this shop" };
     }
-
-    const contentType = request.headers.get("content-type") || "";
-
-    // ===============================
-    //  1. DELETE (JSON FIRST HANDLE)
-    // ===============================
-    if (contentType.includes("application/json")) {
-      const body = await request.json();
-
-      console.log("DELETE BODY:", body);
-
-      if (body.id) {
-        const productId = body.id.includes("gid://")
-          ? body.id
-          : `gid://shopify/Product/${body.id}`;
-
-        const mutation = `
-          mutation ($input: ProductDeleteInput!) {
-            productDelete(input: $input) {
-              deletedProductId
-              userErrors { message }
-            }
-          }
-        `;
-
-        const res = await admin.graphql(mutation, {
-          variables: { input: { id: productId } }
-        });
-
-        const json = await res.json();
-
-        console.log("DELETE RESPONSE:", json);
-
-        if (json.data.productDelete.userErrors.length > 0) {
-          return {
-            success: false,
-            error: json.data.productDelete.userErrors[0].message
-          };
-        }
-
-        return { success: true };
-      }
-    }
-
     // SENDER MAILER CODE
 
     // =========================
-    //  INQUIRY FORM HANDLER (SAFE VARIABLE)
+    // 🔥 INQUIRY FORM HANDLER (SAFE VARIABLE)
     // =========================
     // const inquiryData = await request.formData();
     const formData = await request.formData();
-
+    // =========================
+    // 🔥 INQUIRY FORM HANDLER
+    // =========================
     const buyerName = formData.get("buyer_name");
     const buyerEmail = formData.get("buyer_email");
     const productRef = formData.get("product_reference");
@@ -147,40 +108,73 @@ export async function action({ request }) {
           auth: {
             user: "kas.kuldeepakthakur@gmail.com",
             pass: "ftkg shcr hbrl knpz"
-          },
-          ipVersion: 'ipv4'
+          }
         });
 
-        //  REMOVE AWAIT (IMPORTANT)
-        transporter.sendMail({
+        await transporter.sendMail({
           from: "kas.kuldeepakthakur@gmail.com",
           to: designerEmail,
           cc: buyerEmail || undefined,
           subject: `Inquiry for ${productRef}`,
           text: `
-                  Name: ${buyerName}
-                  User Email: ${buyerEmail || "Not provided"}
-                  Product: ${productRef}
-                  Message: ${message || "No message"}
-            `
-        })
-          .then(() => {
-            console.log("Inquiry email sent");
-          })
-          .catch((err) => {
-            console.error("Email error:", err);
-          });
+          Name: ${buyerName}
+          User Email: ${buyerEmail || "Not provided"}
+          Product: ${productRef}
+          Message: ${message || "No message"}
+          `
+        });
+
+        console.log("✅ Inquiry email sent");
 
         return { success: true, type: "inquiry" };
 
       } catch (err) {
-        console.error("Email error:", err);
+        console.error("❌ Email error:", err);
         return { success: false };
       }
     }
 
 
 
+    // START THIS CODE ONLY DRFT PRODUCTS DELETE FUNCTIONALITY 
+    const deleteId = formData.get("delete_id");
+
+    if (deleteId) {
+
+      console.log("Incoming ID:", deleteId);
+
+      const productId = deleteId.includes("gid://")
+        ? deleteId
+        : `gid://shopify/Product/${deleteId}`;
+
+      console.log("Final Product ID:", productId);
+
+      const mutation = `
+    mutation ($input: ProductDeleteInput!) {
+      productDelete(input: $input) {
+        deletedProductId
+        userErrors { message }
+      }
+    }
+  `;
+
+      const res = await admin.graphql(mutation, {
+        variables: { input: { id: productId } }
+      });
+
+      const json = await res.json();
+
+      console.log("🔥 DELETE RESPONSE:", JSON.stringify(json, null, 2));
+
+      if (json.data.productDelete.userErrors.length > 0) {
+        return {
+          success: false,
+          error: json.data.productDelete.userErrors[0].message
+        };
+      }
+
+      return { success: true };
+    }
 
     // const formData = await request.formData();
 
@@ -672,7 +666,7 @@ export async function action({ request }) {
       console.log("METAFIELD RESPONSE:", JSON.stringify(metafieldRes, null, 2));
 
       if (metafieldRes.metafieldsSet.userErrors.length) {
-        console.error(" METAFIELD ERRORS:", metafieldRes.metafieldsSet.userErrors);
+        console.error("❌ METAFIELD ERRORS:", metafieldRes.metafieldsSet.userErrors);
       }
 
       productResult = { productId };
