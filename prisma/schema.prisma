@@ -1,11 +1,22 @@
 // prisma/schema.prisma
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"  // SQLite database
+  url      = "file:./dev.db"
 }
 
 generator client {
   provider = "prisma-client-js"
+}
+
+model Session {
+  id            String   @id
+  shop          String
+  state         String
+  isOnline      Boolean  @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
 }
 
 model Example {
