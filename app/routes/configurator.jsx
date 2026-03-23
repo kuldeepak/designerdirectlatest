@@ -83,11 +83,61 @@ export async function action({ request }) {
     if (!admin) {
       return { success: false, error: "App not installed for this shop" };
     }
+    const formData = await request.formData();
+
+
+    // =========================
+    // EMAIL SENDER INQUIRY FORM HANDLER
+    // =========================
+    const buyerName = formData.get("buyer_name");
+    const buyerEmail = formData.get("buyer_email");
+    const productRef = formData.get("product_reference");
+    const message = formData.get("message");
+    const designerEmail = formData.get("designer_email");
+
+    if (buyerName && productRef && designerEmail) {
+      try {
+        const transporter = nodemailer.createTransport({
+          host: "smtp.gmail.com",
+          port: 587,
+          secure: false,
+          auth: {
+            user: "kas.kuldeepakthakur@gmail.com",
+            pass: "ftkg shcr hbrl knpz"
+          }
+        });
+
+        await transporter.sendMail({
+          from: "kas.kuldeepakthakur@gmail.com",
+          to: designerEmail,
+          cc: buyerEmail || undefined,
+          subject: `Inquiry for ${productRef}`,
+          text: `
+          Name: ${buyerName}
+          User Email: ${buyerEmail || "Not provided"}
+          Product: ${productRef}
+          Message: ${message || "No message"}
+          `
+        });
+
+        console.log("✅ Inquiry email sent");
+
+        return { success: true, type: "inquiry" };
+
+      } catch (err) {
+        console.error("❌ Email error:", err);
+        return { success: false };
+      }
+    }
+
+
+
+
+
 
 
     // START THIS CODE ONLY DRAFT PRODUCTS DELETE FUNCTIONALITY ONLY
 
-    const formData = await request.formData();
 
     // =========================
     // DELETE FUNCTIONALITY
@@ -127,54 +177,6 @@ export async function action({ request }) {
       }
 
       return { success: true };
-    }
-
-
-    // =========================
-    // EMAIL SENDER INQUIRY FORM HANDLER
-    // =========================
-    // =========================
-    //  INQUIRY FORM HANDLER
-    // =========================
-    const buyerName = formData.get("buyer_name");
-    const buyerEmail = formData.get("buyer_email");
-    const productRef = formData.get("product_reference");
-    const message = formData.get("message");
-    const designerEmail = formData.get("designer_email");
-
-    if (buyerName && productRef && designerEmail) {
-      try {
-        const transporter = nodemailer.createTransport({
-          host: "smtp.gmail.com",
-          port: 587,
-          secure: false,
-          auth: {
-            user: "kas.kuldeepakthakur@gmail.com",
-            pass: "ftkg shcr hbrl knpz"
-          }
-        });
-
-        await transporter.sendMail({
-          from: "kas.kuldeepakthakur@gmail.com",
-          to: designerEmail,
-          cc: buyerEmail || undefined,
-          subject: `Inquiry for ${productRef}`,
-          text: `
-Name: ${buyerName}
-User Email: ${buyerEmail || "Not provided"}
-Product: ${productRef}
-Message: ${message || "No message"}
-`
-        });
-
-        console.log("✅ Inquiry email sent");
-
-        return { success: true, type: "inquiry" };
-
-      } catch (err) {
-        console.error("❌ Email error:", err);
-        return { success: false };
-      }
     }
 
 
