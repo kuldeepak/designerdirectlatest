@@ -502,7 +502,6 @@ export async function action({ request }) {
         throw new Error(updateData.metaobjectUpdate.userErrors[0].message);
       }
       metaobjectResult = { action: "update", metaobject: updateData.metaobjectUpdate.metaobject };
-
     } else {
       // CREATE
       const handle = `${brandName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
@@ -515,6 +514,8 @@ export async function action({ request }) {
       ];
       if (lookbookFileId) fields.push({ key: "lookbook_file", value: lookbookFileId });
       if (linesheetFileId) fields.push({ key: "linesheet_pdf", value: linesheetFileId });
+
+
 
       const createMutation = `
         mutation CreateMetaobject($handle: String!, $type: String!, $fields: [MetaobjectFieldInput!]!) {
