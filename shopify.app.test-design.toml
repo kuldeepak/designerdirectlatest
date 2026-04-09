@@ -1,0 +1,20 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "2fbb4e35647ed1cff40d0f99a55c7331"
+name = "test-design"
+application_url = "https://example.com"
+embedded = true
+apiKey = "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"
+[build]
+automatically_update_urls_on_dev = true
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2026-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_metaobject_definitions,read_metaobjects,write_app_proxy,write_files,write_metaobject_definitions,write_metaobjects,write_products"
+
+[auth]
+redirect_urls = ["https://example.com/api/auth"]

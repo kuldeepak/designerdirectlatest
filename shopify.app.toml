@@ -1,31 +1,34 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5aaded2899d449156c5deb413cb205f3"
 name = "form-app-designdirect"
-application_url = "https://designerdirectlatest.onrender.com/"
+application_url = "https://designerdirectlatest-yklf.onrender.com/"
 embedded = true
-
-[build]
-automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2026-04"
 
 [[webhooks.subscriptions]]
 topics = ["app/uninstalled"]
-uri = "/webhooks/app/uninstalled"
+uri = "https://designerdirectlatest.onrender.com/webhooks/app/uninstalled"
 
 [[webhooks.subscriptions]]
 topics = ["app/scopes_update"]
-uri = "/webhooks/app/scopes_update"
+uri = "https://designerdirectlatest.onrender.com/webhooks/app/scopes_update"
 
 [access_scopes]
-scopes = "write_products,write_app_proxy,write_metaobjects,read_metaobjects,read_metaobject_definitions,write_metaobject_definitions,write_files"
-
-[app_proxy]
-url = "/configurator"
-prefix = "apps"
-subpath = "configurator"
-
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_app_proxy,write_files,read_metaobject_definitions,write_metaobject_definitions,read_metaobjects,write_metaobjects,write_products"
+optional_scopes = []
+use_legacy_install_flow = false
 
 [auth]
-redirect_urls = ["https://designerdirectlatest.onrender.com/api/auth"]
+redirect_urls = ["https://designerdirectlatest-yklf.onrender.com/api/auth"]
+
+[app_proxy]
+url = "https://designerdirectlatest-yklf.onrender.com/configurator"
+subpath = "configurator"
+prefix = "apps"
+
+[build]
+automatically_update_urls_on_dev = true
