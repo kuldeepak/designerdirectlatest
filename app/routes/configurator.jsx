@@ -76,14 +76,16 @@ export async function action({ request }) {
     // =======================
     // AUTHENTICATE FIRST (before reading body)
     // =======================
-
     const { admin, session } = await authenticate.public.appProxy(request);
-    console.log('------------' + admin + '=================');
+
+
+
     if (!admin) {
       return { success: false, error: "App not installed for this shop" };
     }
-
     const formData = await request.formData();
+
+
     // =========================
     // EMAIL SENDER INQUIRY FORM HANDLER
     // =========================
