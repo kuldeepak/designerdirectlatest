@@ -1,0 +1,32 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "73884950c7c23487be5deee9e0501e4e"
+name = "Designer Forms"
+application_url = "https://drama-regardless-fabric-hopes.trycloudflare.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_app_proxy,write_files,read_metaobject_definitions,write_metaobject_definitions,read_metaobjects,write_metaobjects,write_products"
+
+[[webhooks.subscriptions]]
+topics = ["app/scopes_update"]
+uri = "https://drama-regardless-fabric-hopes.trycloudflare.com/webhooks/app/scopes_update"
+use_legacy_install_flow = false
+
+
+[app_proxy]
+url = "https://drama-regardless-fabric-hopes.trycloudflare.com/configurator"
+subpath = "configurator"
+prefix = "apps"
+
+[auth]
+redirect_urls = [
+    "https://drama-regardless-fabric-hopes.trycloudflare.com/api/auth",
+]

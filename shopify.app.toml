@@ -2,7 +2,7 @@
 
 client_id = "5aaded2899d449156c5deb413cb205f3"
 name = "form-app-designdirect"
-application_url = "https://designerdirectlatest-yklf.onrender.com/"
+application_url = "https://description-storage-cookies-virgin.trycloudflare.com/"
 embedded = true
 
 [webhooks]
@@ -23,10 +23,12 @@ optional_scopes = []
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = ["https://designerdirectlatest-yklf.onrender.com/api/auth"]
+redirect_urls = [
+    "https://description-storage-cookies-virgin.trycloudflare.com/api/auth",
+]
 
 [app_proxy]
-url = "https://designerdirectlatest-yklf.onrender.com/configurator"
+url = "https://description-storage-cookies-virgin.trycloudflare.com/configurator"
 subpath = "configurator"
 prefix = "apps"
 
